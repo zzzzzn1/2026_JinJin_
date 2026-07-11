@@ -175,30 +175,37 @@ if user_input := st.chat_input("마음속 불안을 편하게 털어놓아 봐..
         st.markdown(user_input)
 
     with st.chat_message("assistant"):
-        draft_response = client.models.generate_content(
-            model=MAIN_MODEL,
-            contents=user_input,
-            config=types.GenerateContentConfig(
-                system_instruction=MAIN_PROMPT,
-            ),
-        )
-        draft_text = draft_response.text
+       with st.chat_message("assistant"):
+        try: # 👈 1. 여기에 try를 추가하고, 아래 AI 호출 코드들을 한 칸씩(Tab) 안으로 밀어 넣으세요!
+            draft_response = client.models.generate_content(
+                model=MAIN_MODEL,
+                contents=user_input,
+                config=types.GenerateContentConfig(
+                    system_instruction=MAIN_PROMPT,
+                ),
+            )
+            draft_text = draft_response.text
 
-        eval_response = client.models.generate_content(
-            model=EVAL_MODEL,
-            contents=f"[학생 입력]: {user_input}\n[AI 초안]: {draft_text}",
-            config=types.GenerateContentConfig(
-                system_instruction=EVAL_PROMPT,
-                response_mime_type="application/json",
-            ),
-        )
-        eval_text = eval_response.text
+            eval_response = client.models.generate_content(
+                model=EVAL_MODEL,
+                contents=f"[학생 입력]: {user_input}\n[AI 초안]: {draft_text}",
+                config=types.GenerateContentConfig(
+                    system_instruction=EVAL_PROMPT,
+                    response_mime_type="application/json",
+                ),
+            )
+            eval_text = eval_response.text
 
+        except Exception as e: # 👈 2. 두 번째 AI 호출이 끝난 직후에 이 두 줄을 추가하세요!
+            st.error(f"🚨 구글 API 에러 상세 원인: {e}")
+            st.stop()
+
+        # 👇 3. 이 아래부터는 원래 짜두신 코드 그대로 두시면 됩니다! (들여쓰기 변경 없음)
         try:
             eval_data = json.loads(eval_text.replace("```json", "").replace("```", "").strip())
         except (json.JSONDecodeError, KeyError):
             eval_data = None
-
+            
         safe_fallback = "많이 힘들지? 네 상황을 교내 상담실 선생님께 정확히 전달해서 도움을 받는 것도 좋은 방법이야. 걱정 말고 조금만 쉬어."
 
         if eval_data and eval_data.get("Final_Decision") == "PASS":
